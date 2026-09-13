@@ -22,86 +22,16 @@ from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
-DAILYMOTION_USERNAME = os.environ.get("DAILYMOTION_USERNAME")
-DAILYMOTION_PASSWORD = os.environ.get("DAILYMOTION_PASSWORD")
+
 
 BLUESKY_HANDLE = os.environ.get("BLUESKY_HANDLE")
 BLUESKY_PASSWORD = os.environ.get("BLUESKY_PASSWORD")
 
 HISTORY_FILE = "history.json"
 
-# فحص واعتماد الاتصال مع Dailymotion
-def verify_dailymotion_auth():
-    cid = os.environ.get("DAILYMOTION_CLIENT_ID")
-    sec = os.environ.get("DAILYMOTION_CLIENT_SECRET")
-    username = os.environ.get("DAILYMOTION_USERNAME")
-    password = os.environ.get("DAILYMOTION_PASSWORD")
 
-    if not all([cid, sec, username, password]):
-        print("❌ مفاتيح Dailymotion ناقصة في الـ Secrets")
-        return None
 
-    auth_url = "https://api.dailymotion.com/oauth/token"
-    headers = {"User-Agent": "Mozilla/5.0"}
 
-    try:
-        res = requests.post(
-            auth_url,
-            data={
-                "grant_type": "password",
-                "client_id": cid,
-                "client_secret": sec,
-                "username": username,
-                "password": password,
-                "scope": "manage_videos manage_playlists manage_subscriptions userinfo"
-            },
-            headers=headers,
-            timeout=15
-        ).json()
-
-        token = res.get("access_token")
-        if token:
-            print("✅ تم الاتصال بنجاح بحسابك على Dailymotion!")
-            return token
-
-        print("❌ استجابة Dailymotion:", res)
-        return None
-
-    except Exception as e:
-        print("❌ خطأ في الاتصال:", e)
-        return None
-
-# جلب أفضل الفيديوهات أداءً على القناة لربط السكريبت بها
-def fetch_top_performing_videos(access_token):
-    if not access_token:
-        return []
-    try:
-        headers = {"Authorization": f"Bearer {access_token}"}
-        url = "https://api.dailymotion.com/me/videos?fields=title,views&sort=visited&limit=5"
-        res = requests.get(url, headers=headers, timeout=15).json()
-        videos = res.get("list", [])
-        performers = [f"'{v.get('title')}' ({v.get('views', 0)} views)" for v in videos if v.get("title")]
-        print(f"📊 تم تحليل أداء القناة: العثور على {len(performers)} فيديو عالي المشاهدة.")
-        return performers
-    except Exception as e:
-        print("⚠️ تعذر جلب تحليلات القناة:", e)
-        return []
-
-def get_used_topics():
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
-
-def save_topic_to_history(title):
-    history = get_used_topics()
-    history.append(title)
-    history = history[-100:]
-    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
 
 # ==========================================
 # 2. محرك جلب التريندات العالمية الحيّة
@@ -364,84 +294,7 @@ def build_final_video(video_files, audio_path, orientation, output_path="final_v
     subprocess.run(cmd, check=True)
     print("=== Final Video Built Successfully! ===")
 
-# 7. الرفع المباشر لـ Dailymotion
-def upload_to_dailymotion(access_token, video_path, title, description, tags, playlist_name):
-    if not access_token:
-        return None
 
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    # 1. طلب رابط الرفع
-    url_res = requests.get("https://api.dailymotion.com/file/upload", headers=headers).json()
-    upload_url = url_res.get("upload_url")
-
-    if not upload_url:
-        print("=== فشل الحصول على رابط الرفع ===")
-        return None
-
-    # 2. رفع ملف الفيديو
-    with open(video_path, "rb") as f:
-        file_res = requests.post(upload_url, files={"file": f}).json()
-    file_url = file_res.get("url")
-
-    if not file_url:
-        print("=== فشل رفع الملف ===")
-        return None
-
-    tags_string = ",".join(tags) if isinstance(tags, list) else str(tags)
-
-    publish_data = {
-        "url": file_url,
-        "title": title[:100],
-        "description": description,
-        "tags": tags_string,
-        "published": "true",
-        "channel": "news",
-        "language": "en",
-        "is_created_for_kids": "false"
-    }
-    
-    # 3. نشر الفيديو والحصول على المعرف
-    publish_res = requests.post("https://api.dailymotion.com/me/videos", headers=headers, data=publish_data).json()
-    video_id = publish_res.get("id")
-    
-    if not video_id:
-        print("=== فشل نشر الفيديو ===", publish_res)
-        return None
-
-    video_link = f"https://www.dailymotion.com/video/{video_id}"
-    print("=== Published to Dailymotion with Full SEO Meta:", video_link)
-
-    # 4. إضافة الفيديو إلى قائمة التشغيل بعد مهلة معالجة
-    try:
-        print("⏳ الانتظار 5 ثوانٍ لضمان تسجيل الفيديو في السيرفر...")
-        time.sleep(5)
-
-        user_playlists = requests.get("https://api.dailymotion.com/me/playlists?limit=100", headers=headers).json().get("list", [])
-        playlist_id = None
-        
-        for pl in user_playlists:
-            if pl.get("name") == playlist_name:
-                playlist_id = pl.get("id")
-                break
-                
-        if not playlist_id:
-            new_pl = requests.post("https://api.dailymotion.com/me/playlists", headers=headers, data={"name": playlist_name}).json()
-            playlist_id = new_pl.get("id")
-
-        if playlist_id:
-            add_url = f"https://api.dailymotion.com/playlist/{playlist_id}/videos"
-            pl_res = requests.post(add_url, headers=headers, data={"videoid": video_id})
-            
-            if pl_res.status_code in [200, 201]:
-                print(f"=== Added Video ({video_id}) to Playlist: {playlist_name} Successfully! ===")
-            else:
-                print(f"❌ فشل إضافة الفيديو للقائمة: {pl_res.text}")
-
-    except Exception as e:
-        print("❌ Playlist Error:", e)
-
-    return video_link
 
 # استخراج الـ Facets لنشر روابط قابلة للنقر في Bluesky
 def extract_bluesky_facets(text):
@@ -568,47 +421,7 @@ def engage_on_bluesky_niche(token, did, search_query):
     except Exception as e:
         print("❌ Bluesky External Engagement Error:", e)
 
-# التفاعل الخارجي على Dailymotion
-def engage_on_dailymotion_niche(access_token, search_query):
-    if not access_token or not search_query:
-        return
-        
-    headers = {"Authorization": f"Bearer {access_token}"}
-    try:
-        search_url = f"https://api.dailymotion.com/videos?search={search_query}&fields=id,owner,title&limit=3&sort=relevance"
-        res = requests.get(search_url, headers=headers, timeout=15).json()
-        videos = res.get("list", [])
-        
-        comments_pool = [
-            "Great insights! Thanks for sharing this breakdown. 👏",
-            "Awesome content! Really enjoyed watching this topic. 🔥",
-            "Very well explained! Keep up the great work! ✨"
-        ]
-        
-        for vid in videos:
-            vid_id = vid.get("id")
-            owner_id = vid.get("owner")
-            
-            comment_text = random.choice(comments_pool)
-            requests.post(
-                f"https://api.dailymotion.com/video/{vid_id}/comments",
-                headers=headers,
-                data={"message": comment_text},
-                timeout=15
-            )
-            
-            if owner_id:
-                requests.post(
-                    f"https://api.dailymotion.com/me/following/{owner_id}",
-                    headers=headers,
-                    timeout=15
-                )
-                
-            time.sleep(2)
-            
-        print(f"=== Engaged with {len(videos)} external Dailymotion channels in niche! ===")
-    except Exception as e:
-        print("❌ Dailymotion External Engagement Error:", e)
+
 
 # 9. التشغيل الرئيسي
 if __name__ == "__main__":
