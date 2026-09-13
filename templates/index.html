@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>13vidio - منصة الفيديوهات الذكية</title>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: Tahoma, sans-serif; margin: 0; padding: 20px; }
+        header { text-align: center; margin-bottom: 40px; }
+        h1 { color: #38bdf8; font-size: 2.5rem; margin: 0; }
+        p { color: #94a3b8; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background-color: #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 160px; object-fit: cover; }
+        .card-body { padding: 15px; }
+        .card-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: #fff; text-decoration: none; display: block; }
+        .card-title:hover { color: #38bdf8; }
+        .meta { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>13vidio</h1>
+        <p>منصتك الأولى للفيديوهات الذكية والمولدة بالذكاء الاصطناعي</p>
+    </header>
+
+    <div class="grid">
+        {% for video in videos %}
+        <div class="card">
+            <a href="{{ url_for('watch_video', video_id=video.id) }}">
+                <img src="{{ video.thumbnail_url or 'https://via.placeholder.com/300x160.png?text=13vidio' }}" alt="فيديو">
+            </a>
+            <div class="card-body">
+                <a href="{{ url_for('watch_video', video_id=video.id) }}" class="card-title">{{ video.title }}</a>
+                <div class="meta">
+                    <span>👁️ {{ video.views }} مشاهدة</span>
+                    <span>❤️ {{ video.likes }} إعجاب</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align: center; grid-column: 1 / -1; color: #64748b;">لا توجد فيديوهات مرفوعة حتى الآن. انتظر السكربت التلقائي ليملأ المنصة!</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
