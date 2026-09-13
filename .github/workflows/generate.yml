@@ -40,3 +40,11 @@ jobs:
           git add instance/13vidio.db static/ generated_video.mp4 || true
           git commit -m "🤖 Auto-generated new video and updated database" || true
           git push || true
+
+      - name: Commit and push generated video
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add static/videos/   # (أو مسار مجلد الفيديوهات عندك في المشروع)
+          git commit -m "Auto-generate new video [skip ci]" || echo "No changes to commit"
+          git push
