@@ -1,48 +1,42 @@
-name: Automatic Video Generator Engine
+name: Auto Video Generator
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # يسمح بتشغيله يدوياً من علامة تبويب Actions في جيت هب
   schedule:
-    # 4 مواعيد ذروة يومياً لمواكبة التريندات العالمية
-    - cron: '0 7,12,16,20 * * *'
+    - cron: '0 0 * * *' # أو أوتوماتيك كل يوم
 
 jobs:
-  build-and-create-video:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install System Dependencies (FFmpeg)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
+      - name: Install System Dependencies (FFmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-    - name: Install Python Libraries
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Python Packages
+        run: |
+          pip install --upgrade pip
+          pip install flask flask-sqlalchemy gtts moviepy imageio-ffmpeg
 
-    - name: Run Video Generator Engine
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-        DAILYMOTION_CLIENT_ID: ${{ secrets.DAILYMOTION_CLIENT_ID }}
-        DAILYMOTION_CLIENT_SECRET: ${{ secrets.DAILYMOTION_CLIENT_SECRET }}
-        DAILYMOTION_USERNAME: ${{ secrets.DAILYMOTION_USERNAME }}
-        DAILYMOTION_PASSWORD: ${{ secrets.DAILYMOTION_PASSWORD }}
-        BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
-        BLUESKY_PASSWORD: ${{ secrets.BLUESKY_PASSWORD }}
-      run: python generate_video.py
+      - name: Run Video Generator Script
+        run: |
+          python generate_video.py
 
-    - name: Save Generated Video Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: daily-shorts-video
-        path: final_video.mp4
+      - name: Commit and Push Generated Video & Database
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add instance/13vidio.db static/ generated_video.mp4 || true
+          git commit -m "🤖 Auto-generated new video and updated database" || true
+          git push || true
