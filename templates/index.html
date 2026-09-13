@@ -3,45 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>13vidio - منصة الفيديوهات الذكية</title>
-    <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: Tahoma, sans-serif; margin: 0; padding: 20px; }
-        header { text-align: center; margin-bottom: 40px; }
-        h1 { color: #38bdf8; font-size: 2.5rem; margin: 0; }
-        p { color: #94a3b8; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .card { background-color: #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s; }
-        .card:hover { transform: translateY(-5px); }
-        .card img { width: 100%; height: 160px; object-fit: cover; }
-        .card-body { padding: 15px; }
-        .card-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: #fff; text-decoration: none; display: block; }
-        .card-title:hover { color: #38bdf8; }
-        .meta { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; margin-top: 10px; }
-    </style>
+    <title>13vidio - المنصة العربية للفيديوهات</title>
+    <!-- استخدام Tailwind CSS للتصميم السريع والعصري -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <header>
-        <h1>13vidio</h1>
-        <p>منصتك الأولى للفيديوهات الذكية والمولدة بالذكاء الاصطناعي</p>
-    </header>
+<body class="bg-slate-900 text-gray-100 min-h-screen">
 
-    <div class="grid">
-        {% for video in videos %}
-        <div class="card">
-            <a href="{{ url_for('watch_video', video_id=video.id) }}">
-                <img src="{{ video.thumbnail_url or 'https://via.placeholder.com/300x160.png?text=13vidio' }}" alt="فيديو">
-            </a>
-            <div class="card-body">
-                <a href="{{ url_for('watch_video', video_id=video.id) }}" class="card-title">{{ video.title }}</a>
-                <div class="meta">
-                    <span>👁️ {{ video.views }} مشاهدة</span>
-                    <span>❤️ {{ video.likes }} إعجاب</span>
-                </div>
-            </div>
+    <!-- شريط التنقل العلوي -->
+    <nav class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <a href="{{ url_for('index') }}" class="text-2xl font-extrabold text-red-500 flex items-center gap-2">
+            📺 13vidio
+        </a>
+        <div class="text-sm text-slate-400">
+            منصة الأتمتة الذكية 🚀
         </div>
-        {% else %}
-        <p style="text-align: center; grid-column: 1 / -1; color: #64748b;">لا توجد فيديوهات مرفوعة حتى الآن. انتظر السكربت التلقائي ليملأ المنصة!</p>
-        {% endfor %}
-    </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        
+        <!-- قسم العنوان والترحيب -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">أحدث الفيديوهات المضافة</h1>
+            <p class="text-slate-400">استكشف الفيديوهات التي يتم توليدها ونشرها أوتوماتيكياً على المنصة.</p>
+        </div>
+
+        <!-- شبكة عرض الفيديوهات (Grid) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for video in videos %}
+            <div class="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700/50 hover:border-red-500/50 transition duration-300 flex flex-col">
+                
+                <!-- مشغل مصغر أو نافذة معاينة للفيديو -->
+                <a href="{{ url_for('watch_video', video_id=video.id) }}" class="block aspect-video bg-black relative group">
+                    <video class="w-full h-full object-cover pointer-events-none">
+                        <source src="{{ url_for('static', filename=video.video_url.replace('/static/', '')) }}" type="video/mp4">
+                    </video>
+                    <!-- أيقونة تشغيل عند المرور بالماوس -->
+                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <span class="bg-red-600 text-white rounded-full p-3 shadow-xl">▶</span>
+                    </div>
+                </a>
+
+                <!-- تفاصيل الفيديو -->
+                <div class="p-4 flex flex-col flex-grow justify-between">
+                    <div>
+                        <a href="{{ url_for('watch_video', video_id=video.id) }}">
+                            <h2 class="font-bold text-lg mb-2 line-clamp-2 hover:text-red-400 transition">{{ video.title }}</h2>
+                        </a>
+                        <p class="text-slate-400 text-xs line-clamp-2 mb-4">{{ video.description or "لا يوجد وصف." }}</p>
+                    </div>
+
+                    <!-- إحصائيات الفيديو (مشاهدات، لايكات، تاريخ) -->
+                    <div class="pt-3 border-t border-slate-700/60 flex justify-between items-center text-xs text-slate-400">
+                        <span>👁️ {{ video.views }} مشاهدة</span>
+                        <span class="text-red-400 font-semibold">👍 {{ video.likes }}</span>
+                        <span>📅 {{ video.created_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                </div>
+
+            </div>
+            {% else %}
+            <!-- لو مفيش فيديوهات خالص -->
+            <div class="col-span-full text-center py-20 bg-slate-800/50 rounded-2xl border border-slate-800">
+                <p class="text-xl text-slate-400 mb-2">لا توجد فيديوهات مضافة حتى الآن!</p>
+                <p class="text-sm text-slate-500">قم بتشغيل أداة الأتمتة على جيت هب لتوليد أول فيديو.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+    </main>
+
 </body>
 </html>
