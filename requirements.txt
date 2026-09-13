@@ -3,3 +3,4 @@ flask-sqlalchemy
 gtts
 moviepy
 imageio-ffmpeg
+gunicorn
